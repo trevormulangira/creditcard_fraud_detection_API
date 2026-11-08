@@ -72,7 +72,7 @@ def predict(transaction: TransactionSchema, request: Request): # type: ignore
      }
 
 #BUILD HEALTH CHECKPOINT
-@app.get("/health")
+@app.get("/")
 def health(request: Request):
 
     pipeline = getattr(request.app.state, "pipeline", None)
