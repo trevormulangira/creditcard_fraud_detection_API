@@ -1,82 +1,92 @@
 # Credit Card Fraud Detection API
 
-A FastAPI service that classifies credit card transactions as fraudulent or legitimate using a trained scikit-learn Random Forest pipeline. The API loads the serialized model at startup and exposes prediction and health-check endpoints.
+This project is a FastAPI application for detecting fraudulent credit card transactions using a trained machine learning pipeline. The app loads a saved scikit-learn model at startup, validates incoming transaction data, and exposes endpoints for prediction and health checks.
 
-## Features
+## What has been added
 
-- Fraud prediction through a JSON REST endpoint
-- Fraud probability returned with each prediction
-- Required transaction feature validation through Pydantic/FastAPI
-- Application health and model-loading status endpoint
-- Interactive OpenAPI documentation
-- Docker support
-- Automated endpoint tests
+The current version includes the following project changes:
 
-## Tech Stack
+- A FastAPI app with a startup lifespan hook that loads the serialized model once at application startup
+- A `/predict` endpoint that accepts transaction features in the expected schema and returns:
+  - `is_fraud`
+  - `fraud_probability`
+- Input validation using Pydantic for all `V1` to `V28` features and `Amount`
+- Validation that rejects negative transaction amounts
+- A `/health` endpoint to confirm the model is loaded and the service is healthy
+- Basic automated tests covering invalid and valid request payloads
+- Docker configuration for running the API in a container
+- Utility script for inspecting the saved model pipeline
 
-- Python
+## Project overview
+
+The API is designed for a card fraud dataset where each request contains a transaction record with:
+
+- 28 anonymized PCA features: `V1` through `V28`
+- A numeric `Amount` value
+
+The model is expected to be trained and saved as a pipeline object compatible with `predict()` and `predict_proba()`.
+
+## Tech stack
+
+- Python 3.12+
 - FastAPI
 - Uvicorn
-- scikit-learn
-- pandas
-- joblib
 - Pydantic
+- pandas
+- scikit-learn
+- joblib
 - pytest
+- Docker
 
-## Project Structure
+## Project structure
 
 ```text
 .
-|-- main.py                        # FastAPI application and endpoints
-|-- test_main.py                   # API tests
-|-- inspect_model.py               # Utility for inspecting the trained model
-|-- tuned_random_forest_v1.joblib  # Serialized trained model pipeline
-|-- requirements.txt               # Python dependencies
-|-- Dockerfile                     # Container configuration
-|-- .env                           # Local model configuration
-`-- README.md
+├── main.py                     # FastAPI app, model loading, and endpoints
+├── test_main.py                # API tests for validation and prediction behavior
+├── inspect_model.py            # Model inspection utility
+├── tuned_random_forest_v1.joblib   # Trained model pipeline
+├── requirements.txt            # Python dependencies
+├── Dockerfile                  # Container build definition
+├── .env                        # Local config values for the model name
+├── .gitignore                 # Git exclusions
+├── README.md                  # Project documentation
+└── .vscode/
 ```
-
-## Requirements
-
-- Python 3.12 or later
-- The model file `tuned_random_forest_v1.joblib` in the project root
 
 ## Installation
 
-Create and activate a virtual environment:
+1. Create and activate a virtual environment:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-Install the dependencies:
+2. Install dependencies:
 
 ```powershell
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Start the API:
+3. Start the API:
 
 ```powershell
 uvicorn main:app --reload
 ```
 
-The service will be available at:
+The app will be available at:
 
-- API: <http://127.0.0.1:8000>
-- Swagger UI: <http://127.0.0.1:8000/docs>
-- ReDoc: <http://127.0.0.1:8000/redoc>
+- API: http://127.0.0.1:8000
+- Swagger docs: http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
 
-## API Endpoints
+## API endpoints
 
-### Health Check
+### GET /health
 
-```http
-GET /health
-```
+Returns the current application health and whether the model has loaded successfully.
 
 Example response:
 
@@ -87,7 +97,7 @@ Example response:
 }
 ```
 
-If the pipeline has not loaded, the response reports:
+If the model is not initialized, the endpoint returns:
 
 ```json
 {
@@ -96,47 +106,42 @@ If the pipeline has not loaded, the response reports:
 }
 ```
 
-### Predict Fraud
+### POST /predict
 
-```http
-POST /predict
-Content-Type: application/json
-```
+This endpoint accepts a transaction object and returns a fraud prediction.
 
-The request must contain numeric values for `V1` through `V28` and a non-negative numeric `Amount`.
-
-Example request:
+Request body example:
 
 ```json
 {
-  "V1": 0.0,
-  "V2": 0.0,
-  "V3": 0.0,
-  "V4": 0.0,
-  "V5": 0.0,
-  "V6": 0.0,
-  "V7": 0.0,
-  "V8": 0.0,
-  "V9": 0.0,
-  "V10": 0.0,
-  "V11": 0.0,
-  "V12": 0.0,
-  "V13": 0.0,
-  "V14": 0.0,
-  "V15": 0.0,
-  "V16": 0.0,
-  "V17": 0.0,
-  "V18": 0.0,
-  "V19": 0.0,
-  "V20": 0.0,
-  "V21": 0.0,
-  "V22": 0.0,
-  "V23": 0.0,
-  "V24": 0.0,
-  "V25": 0.0,
-  "V26": 0.0,
-  "V27": 0.0,
-  "V28": 0.0,
+  "V1": -1.456,
+  "V2": 0.524,
+  "V3": 1.123,
+  "V4": -2.034,
+  "V5": 0.789,
+  "V6": -0.456,
+  "V7": 1.567,
+  "V8": -1.234,
+  "V9": 0.654,
+  "V10": 0.432,
+  "V11": -0.111,
+  "V12": 0.933,
+  "V13": -0.876,
+  "V14": 1.001,
+  "V15": -1.452,
+  "V16": 0.518,
+  "V17": 0.222,
+  "V18": -0.776,
+  "V19": 0.998,
+  "V20": -0.432,
+  "V21": 1.121,
+  "V22": -0.333,
+  "V23": 0.991,
+  "V24": -1.412,
+  "V25": 0.652,
+  "V26": -0.883,
+  "V27": 0.876,
+  "V28": 1.229,
   "Amount": 100.0
 }
 ```
@@ -146,41 +151,29 @@ Example response:
 ```json
 {
   "is_fraud": false,
-  "fraud_probability": 0.12
+  "fraud_probability": 0.1203
 }
 ```
 
-`is_fraud` indicates the model's predicted class. `fraud_probability` is the model's probability for the fraud class and may be influenced by the model's decision threshold or training configuration.
+Response behavior:
 
-### Status Codes
-
-| Status | Meaning |
-| --- | --- |
-| `200` | Prediction completed successfully |
-| `422` | Required transaction fields are missing or invalid |
-| `400` | The transaction amount is negative |
-| `500` | An unexpected prediction error occurred |
-
-## cURL Example
-
-```bash
-curl.exe -X POST "http://127.0.0.1:8000/predict" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"V1\":0,\"V2\":0,\"V3\":0,\"V4\":0,\"V5\":0,\"V6\":0,\"V7\":0,\"V8\":0,\"V9\":0,\"V10\":0,\"V11\":0,\"V12\":0,\"V13\":0,\"V14\":0,\"V15\":0,\"V16\":0,\"V17\":0,\"V18\":0,\"V19\":0,\"V20\":0,\"V21\":0,\"V22\":0,\"V23\":0,\"V24\":0,\"V25\":0,\"V26\":0,\"V27\":0,\"V28\":0,\"Amount\":100}"
-```
+- `is_fraud` is a boolean prediction from the model
+- `fraud_probability` is the probability for the fraud class returned by `predict_proba()`
+- Negative `Amount` values are rejected with a 400 error
+- Missing required features return a 422 validation error
 
 ## Testing
 
-Run the test suite from the project root:
+Run the test suite:
 
 ```powershell
 pytest
 ```
 
-The tests verify that:
+Current tests verify:
 
-- Requests with missing transaction features are rejected
-- Valid transactions produce both prediction fields
+- Missing feature payloads are rejected as invalid input
+- A valid transaction payload returns a successful prediction response
 
 ## Docker
 
@@ -196,11 +189,13 @@ Run the container:
 docker run --rm -p 8000:8000 credit-card-fraud-api
 ```
 
-Then open <http://localhost:8000/docs>.
+Then open the app in the browser at:
 
-## Model Inspection
+http://localhost:8000/docs
 
-To view the serialized model type and, when available, its pipeline steps and expected feature names:
+## Model inspection
+
+To inspect the loaded model object and confirm the expected feature names and pipeline steps:
 
 ```powershell
 python inspect_model.py
@@ -208,7 +203,7 @@ python inspect_model.py
 
 ## Notes
 
-- Replace `tuned_random_forest_v1.joblib` with a compatible trained pipeline that supports `predict` and `predict_proba`.
-- The model expects the same 29 input features in the same order used during training.
-- The API is intended for development or internal use and should be secured before production deployment.
-- Fraud prediction probabilities should not be treated as definitive financial or legal decisions.
+- The app expects a valid serialized model file named `tuned_random_forest_v1.joblib` in the project root.
+- The model must be trained with the same feature schema used by this API (`V1` to `V28` + `Amount`).
+- This API is suitable for local development and testing, and should be hardened before production deployment.
+- Fraud detection is a risk signal, not an automatic decision-making system for financial enforcement.
